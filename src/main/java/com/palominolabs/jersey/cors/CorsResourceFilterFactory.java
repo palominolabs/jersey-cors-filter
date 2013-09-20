@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.core.Context;
 import java.lang.reflect.Method;
@@ -73,49 +74,169 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
         }
 
         Method method = abstractMethod.getMethod();
-        if (method.isAnnotationPresent(Cors.class)) {
+        Class<?> klass = method.getDeclaringClass();
+        List<ResourceFilter> filters = newArrayList();
+
+        // check for impossible combinations
+        if (method.isAnnotationPresent(OPTIONS.class) && method.isAnnotationPresent(Cors.class)) {
+            logger.error("Resource method " + abstractMethod +
+                " is annotated with @Cors, which is not applicable for methods annotated with @OPTIONS");
+            return null;
+        } else if (!method.isAnnotationPresent(OPTIONS.class) && method.isAnnotationPresent(CorsPreflight.class)) {
+            logger.error("Resource method " + abstractMethod +
+                " is annotated with @CorsPreflight, which is only applicable for methods annotated with @OPTIONS");
+            return null;
+        }
+
+        addCorsFilter(method, klass, filters);
+
+        addCorsPreflightFilter(method, klass, filters);
+
+        return filters;
+    }
+
+    /**
+     * Add Cors response filter, if appropriate.
+     *
+     * @param method  method
+     * @param klass   method's class
+     * @param filters filter list to add to
+     */
+    private void addCorsFilter(Method method, Class<?> klass, List<ResourceFilter> filters) {
+        if (!klass.isAnnotationPresent(Cors.class) && !method.isAnnotationPresent(Cors.class)) {
+            return;
+        }
+
+        CorsResourceConfig config = getDefaultResourceConfig();
+
+        if (klass.isAnnotationPresent(Cors.class)) {
             if (method.isAnnotationPresent(OPTIONS.class)) {
-                logger.error("Resource method " + abstractMethod +
-                    " is annotated with @Cors, which is not applicable for methods annotated with @OPTIONS");
-                return null;
+                // do not add a filter
+                return;
+            }
+            applyCorsAnnotation(config, klass.getAnnotation(Cors.class));
+        }
+
+        if (method.isAnnotationPresent(Cors.class)) {
+            applyCorsAnnotation(config, method.getAnnotation(Cors.class));
+        }
+
+        filters.add(getResourceResponseFilter(config));
+    }
+
+    /**
+     * Add CorsPreflight response filter, if appropriate.
+     *
+     * @param method  method
+     * @param klass   method's class
+     * @param filters filter list to add to
+     */
+    private void addCorsPreflightFilter(Method method, Class<?> klass, List<ResourceFilter> filters) {
+        if (!klass.isAnnotationPresent(CorsPreflight.class) && !method.isAnnotationPresent(CorsPreflight.class)) {
+            return;
+        }
+
+        CorsPreflightConfig config = getDefaultPreflightConfig();
+
+        if (klass.isAnnotationPresent(CorsPreflight.class)) {
+            if (!method.isAnnotationPresent(OPTIONS.class)) {
+                return;
             }
 
-            return newArrayList(getResourceResponseFilter(method.getAnnotation(Cors.class)));
+            applyCorsPreflightAnnotation(config, klass.getAnnotation(CorsPreflight.class));
         }
 
         if (method.isAnnotationPresent(CorsPreflight.class)) {
-            if (!method.isAnnotationPresent(OPTIONS.class)) {
-                logger.error("Resource method " + abstractMethod +
-                    " is annotated with @CorsPreflight, which is only applicable for methods annotated with @OPTIONS");
-                return null;
-            }
-
-            return newArrayList(getPreflightResponseFilter(method.getAnnotation(CorsPreflight.class)));
+            applyCorsPreflightAnnotation(config, method.getAnnotation(CorsPreflight.class));
         }
 
-        return null;
+        filters.add(getPreflightResponseFilter(config));
     }
 
-    private ResourceFilter getResourceResponseFilter(Cors cors) {
-        String allowOrigin = cors.allowOrigin().isEmpty() ? defAllowOrigin : cors.allowOrigin();
-        String exposeHeaders = cors.exposeHeaders().isEmpty() ? defExposeHeaders : cors.exposeHeaders();
-        Ternary allowCredentials =
-            cors.allowCredentials() == NEUTRAL ? defAllowCredentials : cors.allowCredentials();
-
-        return new CorsResourceResponseResourceFilter(allowOrigin, exposeHeaders,
-            getBooleanFromTernary(allowCredentials));
+    private ResourceFilter getResourceResponseFilter(CorsResourceConfig config) {
+        return new CorsResourceResponseResourceFilter(config.allowOrigin, config.exposeHeaders,
+            getBooleanFromTernary(config.allowCredentials));
     }
 
-    private ResourceFilter getPreflightResponseFilter(CorsPreflight cors) {
-        int maxAge = cors.maxAge() == UNSET_MAX_AGE ? defMaxAge : cors.maxAge();
-        String allowMethods = cors.allowMethods().isEmpty() ? defAllowMethods : cors.allowMethods();
-        String allowHeaders = cors.allowHeaders().isEmpty() ? defAllowHeaders : cors.allowHeaders();
-        Ternary allowCredentials = cors.allowCredentials() == NEUTRAL ? defAllowCredentials : cors.allowCredentials();
-
-        return new CorsPreflightResponseResourceFilter(maxAge, allowMethods, allowHeaders,
-            getBooleanFromTernary(allowCredentials));
+    private ResourceFilter getPreflightResponseFilter(CorsPreflightConfig config) {
+        return new CorsPreflightResponseResourceFilter(config.maxAge, config.allowMethods, config.allowHeaders,
+            getBooleanFromTernary(config.allowCredentials));
     }
 
+    /**
+     * Write non-default values in the annotation to the config.
+     *
+     * @param config config to write to
+     * @param ann    annotation to read from
+     */
+    private void applyCorsAnnotation(CorsResourceConfig config, Cors ann) {
+        if (!ann.allowOrigin().isEmpty()) {
+            config.allowOrigin = ann.allowOrigin();
+        }
+
+        if (!ann.exposeHeaders().isEmpty()) {
+            config.exposeHeaders = ann.exposeHeaders();
+        }
+
+        if (ann.allowCredentials() != NEUTRAL) {
+            config.allowCredentials = ann.allowCredentials();
+        }
+    }
+
+    /**
+     * Write non-default values in the annotation to the config.
+     *
+     * @param config config to write to
+     * @param ann    annotation to read from
+     */
+    private void applyCorsPreflightAnnotation(CorsPreflightConfig config, CorsPreflight ann) {
+        if (ann.maxAge() != UNSET_MAX_AGE) {
+            config.maxAge = ann.maxAge();
+        }
+
+        if (!ann.allowMethods().isEmpty()) {
+            config.allowMethods = ann.allowMethods();
+        }
+
+        if (!ann.allowHeaders().isEmpty()) {
+            config.allowHeaders = ann.allowHeaders();
+        }
+
+        if (ann.allowCredentials() != NEUTRAL) {
+            config.allowCredentials = ann.allowCredentials();
+        }
+    }
+
+    /**
+     * @return a CorsResourceConfig filled in based on the current defaults.
+     */
+    @Nonnull
+    private CorsResourceConfig getDefaultResourceConfig() {
+        CorsResourceConfig c = new CorsResourceConfig();
+        c.allowOrigin = defAllowOrigin;
+        c.exposeHeaders = defExposeHeaders;
+        c.allowCredentials = defAllowCredentials;
+        return c;
+    }
+
+    /**
+     * @return a CorsPreflightConfig filled in based on the current defaults.
+     */
+    @Nonnull
+    private CorsPreflightConfig getDefaultPreflightConfig() {
+        CorsPreflightConfig c = new CorsPreflightConfig();
+        c.maxAge = defMaxAge;
+        c.allowMethods = defAllowMethods;
+        c.allowHeaders = defAllowHeaders;
+        c.allowCredentials = defAllowCredentials;
+        return c;
+    }
+
+    /**
+     * @param allowCredentials a Ternary
+     * @return true for TRUE, false for FALSE
+     * @throws IllegalStateException on NEUTRAL
+     */
     private boolean getBooleanFromTernary(Ternary allowCredentials) {
         switch (allowCredentials) {
             case TRUE:
@@ -167,5 +288,26 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
         }
 
         throw new IllegalArgumentException("Could not parse " + propValue + " as a bool");
+    }
+
+    /**
+     * Mutable bundle of config data for resource cors headers.
+     */
+    @NotThreadSafe
+    private static class CorsResourceConfig {
+        String allowOrigin;
+        String exposeHeaders;
+        Ternary allowCredentials;
+    }
+
+    /**
+     * Mutable bundle of config data for preflight cors headers.
+     */
+    @NotThreadSafe
+    private static class CorsPreflightConfig {
+        int maxAge;
+        String allowMethods;
+        String allowHeaders;
+        Ternary allowCredentials;
     }
 }

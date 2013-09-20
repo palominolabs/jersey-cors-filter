@@ -14,7 +14,7 @@ import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
  * The elements of the annotation are all optional, and only need to be specified if the the global configuration should
  * be overridden for a particular annotated method.
  */
-@Target({ElementType.METHOD})
+@Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CorsPreflight {
 

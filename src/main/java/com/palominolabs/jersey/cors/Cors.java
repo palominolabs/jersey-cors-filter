@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  * optional, and only need to be specified if the the global configuration should be overridden for a particular
  * annotated method.
  */
-@Target({ElementType.METHOD})
+@Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Cors {
 
