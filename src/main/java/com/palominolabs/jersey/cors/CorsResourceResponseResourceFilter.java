@@ -53,11 +53,11 @@ final class CorsResourceResponseResourceFilter implements ResourceFilter {
             putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
             return response;
         }
+    }
 
-        private void putIfNotPresent(MultivaluedMap<String, Object> h, String header, String value) {
-            if (!h.containsKey(header)) {
-                h.putSingle(header, value);
-            }
+    static void putIfNotPresent(MultivaluedMap<String, Object> h, String header, String value) {
+        if (!h.containsKey(header)) {
+            h.putSingle(header, value);
         }
     }
 }

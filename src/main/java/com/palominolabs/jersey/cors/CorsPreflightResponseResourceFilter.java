@@ -7,6 +7,9 @@ import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
 
 import javax.annotation.concurrent.Immutable;
+import javax.ws.rs.core.MultivaluedMap;
+
+import static com.palominolabs.jersey.cors.CorsResourceResponseResourceFilter.putIfNotPresent;
 
 @Immutable
 final class CorsPreflightResponseResourceFilter implements ResourceFilter {
@@ -50,7 +53,12 @@ final class CorsPreflightResponseResourceFilter implements ResourceFilter {
 
         @Override
         public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
-            return null;// TODO
+            MultivaluedMap<String, Object> h = response.getHttpHeaders();
+            putIfNotPresent(h, CorsHeaders.MAX_AGE, Integer.toString(maxAge));
+            putIfNotPresent(h, CorsHeaders.ALLOW_METHODS, allowMethods);
+            putIfNotPresent(h, CorsHeaders.ALLOW_HEADERS, allowHeaders);
+            putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
+            return response;
         }
     }
 }

@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
+
 /**
  * Controls the CORS headers used on preflight responses. Since this only applies to preflight requests, it is only
  * applicable to methods annotated with {@link javax.ws.rs.OPTIONS}
@@ -34,5 +36,5 @@ public @interface CorsPreflight {
     /**
      * @return true if request that is being preflighted should be allowed to be made with the 'credentials' flag
      */
-    Ternary allowCredentials();
+    Ternary allowCredentials() default NEUTRAL;
 }

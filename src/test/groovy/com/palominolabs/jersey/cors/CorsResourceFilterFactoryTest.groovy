@@ -10,6 +10,7 @@ import com.sun.jersey.api.core.ResourceConfig
 import com.sun.jersey.spi.container.servlet.ServletContainer
 import java.util.logging.LogManager
 import javax.ws.rs.GET
+import javax.ws.rs.OPTIONS
 import javax.ws.rs.Path
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletContextHandler
@@ -20,6 +21,12 @@ import org.junit.BeforeClass
 import org.junit.Test
 import org.slf4j.bridge.SLF4JBridgeHandler
 
+import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_CREDENTIALS
+import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_HEADERS
+import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_METHODS
+import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_ORIGIN
+import static com.palominolabs.jersey.cors.CorsHeaders.EXPOSE_HEADERS
+import static com.palominolabs.jersey.cors.CorsHeaders.MAX_AGE
 import static com.palominolabs.jersey.cors.Ternary.FALSE
 import static com.palominolabs.jersey.cors.Ternary.TRUE
 
@@ -98,29 +105,57 @@ class CorsResourceFilterFactoryTest {
   }
 
   @Test
-  public void testGetUnAnnotatedResource() {
+  public void testGetUnAnnotated() {
     Response r = http.prepareGet('http://localhost:8080/unAnnotated').execute().get()
 
     assert 200 == r.statusCode
-    assert !r.headers.containsKey(CorsHeaders.ALLOW_ORIGIN)
-    assert !r.headers.containsKey(CorsHeaders.EXPOSE_HEADERS)
-    assert !r.headers.containsKey(CorsHeaders.MAX_AGE)
-    assert !r.headers.containsKey(CorsHeaders.ALLOW_CREDENTIALS)
-    assert !r.headers.containsKey(CorsHeaders.ALLOW_METHODS)
-    assert !r.headers.containsKey(CorsHeaders.ALLOW_HEADERS)
+    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
+    assert !r.headers.containsKey(MAX_AGE)
+    assert !r.headers.containsKey(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)
+  }
+
+
+  @Test
+  public void testOptionsUnAnnotated() {
+    Response r = http.prepareOptions('http://localhost:8080/unAnnotated').execute().get()
+
+    assert 200 == r.statusCode
+    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
+    assert !r.headers.containsKey(MAX_AGE)
+    assert !r.headers.containsKey(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)
   }
 
   @Test
-  public void testGetAnnotatedNoOverridesResource() {
+  public void testGetAnnotatedNoOverrides() {
     Response r = http.prepareGet('http://localhost:8080/annotatedNoOverrides').execute().get()
 
     assert 200 == r.statusCode
-    assert r.headers.containsKey(CorsHeaders.ALLOW_ORIGIN)
-    assert r.headers.containsKey(CorsHeaders.EXPOSE_HEADERS)
-    assert !r.headers.containsKey(CorsHeaders.MAX_AGE)
-    assert r.headers.containsKey(CorsHeaders.ALLOW_CREDENTIALS)
-    assert !r.headers.containsKey(CorsHeaders.ALLOW_METHODS)
-    assert !r.headers.containsKey(CorsHeaders.ALLOW_HEADERS)
+    assert ['*'] == r.headers.get(ALLOW_ORIGIN)
+    assert [''] == r.headers.get(EXPOSE_HEADERS)
+    assert ['false'] == r.headers.get(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(MAX_AGE)
+    assert !r.headers.containsKey(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)
+  }
+
+  @Test
+  public void testOptionsAnnotatedNoOverrides() {
+    Response r = http.prepareOptions('http://localhost:8080/annotatedNoOverrides').execute().get()
+
+    assert 200 == r.statusCode
+
+    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
+    assert ['86400'] == r.headers.get(MAX_AGE)
+    assert ['false'] == r.headers.get(ALLOW_CREDENTIALS)
+    assert ['GET'] == r.headers.get(ALLOW_METHODS)
+    assert [''] == r.headers.get(ALLOW_HEADERS)
   }
 
   private static void assertOverriddenDefaults(HashMap<String, Object> props) {
@@ -151,6 +186,12 @@ class CorsResourceFilterFactoryTest {
     @Cors
     String get() {
       return 'x'
+    }
+
+    @OPTIONS
+    @CorsPreflight
+    String options() {
+      return 'foo'
     }
   }
 }
