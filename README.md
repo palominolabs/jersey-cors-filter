@@ -1,4 +1,4 @@
-This library makes it easy to add basic CORS support to your [Jersey 1](https://jersey.java.net/) app.
+This library makes it easy to add basic CORS support to your [Jersey 1](https://jersey.java.net/) app. To learn more about CORS, see documentation from [MDN](https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS) and [W3](http://www.w3.org/TR/cors/).
 
 # Usage
 To get started, add a dependency on `com.palominolabs.jersey:jersey-cors-filter:VERSION` where `VERSION` is the latest released version.
