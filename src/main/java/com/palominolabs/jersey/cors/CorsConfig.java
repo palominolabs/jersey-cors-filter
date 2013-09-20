@@ -10,7 +10,7 @@ final class CorsConfig {
      * Expiration of preflight response caching in seconds as either a java.lang.Integer or a java.lang.String. The
      * default is 24 * 3600 (1 day).
      */
-    public static final String MAX_AGE = PREFIX + "maxAage";
+    public static final String MAX_AGE = PREFIX + "maxAge";
     /**
      * Comma-separated list of HTTP methods. The default is "GET". The header is only sent if this is non-empty.
      */
