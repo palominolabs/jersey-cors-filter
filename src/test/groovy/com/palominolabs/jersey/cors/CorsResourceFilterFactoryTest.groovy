@@ -158,6 +158,34 @@ class CorsResourceFilterFactoryTest {
     assert !r.headers.containsKey(ALLOW_HEADERS)
   }
 
+
+  @Test
+  public void testGetAnnotatedWithOverrides() {
+    Response r = http.prepareGet('http://localhost:8080/annotatedWithOverrides').execute().get()
+
+    assert 200 == r.statusCode
+    assert ['http://foo.com'] == r.headers.get(ALLOW_ORIGIN)
+    assert ['true'] == r.headers.get(ALLOW_CREDENTIALS)
+    assert ['x-foo'] == r.headers.get(EXPOSE_HEADERS)
+    assert !r.headers.containsKey(MAX_AGE)
+    assert !r.headers.containsKey(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)
+  }
+
+  @Test
+  public void testOptionsAnnotatedWithOverrides() {
+    Response r = http.prepareOptions('http://localhost:8080/annotatedWithOverrides').execute().get()
+
+    assert 200 == r.statusCode
+
+    assert ['12345'] == r.headers.get(MAX_AGE)
+    assert ['POST'] == r.headers.get(ALLOW_METHODS)
+    assert ['true'] == r.headers.get(ALLOW_CREDENTIALS)
+    assert ['x-foo'] == r.headers.get(ALLOW_HEADERS)
+    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
+  }
+
   private static void assertOverriddenDefaults(HashMap<String, Object> props) {
     DefaultResourceConfig config = new DefaultResourceConfig()
     config.setPropertiesAndFeatures(props)
@@ -190,6 +218,21 @@ class CorsResourceFilterFactoryTest {
 
     @OPTIONS
     @CorsPreflight
+    String options() {
+      return 'foo'
+    }
+  }
+
+  @Path("annotatedWithOverrides")
+  static class AnnotatedWithOverridesResource {
+    @GET
+    @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
+    String get() {
+      return 'x'
+    }
+
+    @OPTIONS
+    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345)
     String options() {
       return 'foo'
     }

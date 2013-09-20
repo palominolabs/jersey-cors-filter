@@ -25,7 +25,7 @@ final class CorsConfig {
      */
     public static final String ALLOW_CREDENTIALS = PREFIX + "allowCredentials";
     /**
-     * String '*' or an origin URI. The default is '*'.
+     * String '*', 'null' (as a string), or an origin URI. The default is '*'.
      */
     public static final String ALLOW_ORIGIN = PREFIX + "allowOrigin";
     /**
