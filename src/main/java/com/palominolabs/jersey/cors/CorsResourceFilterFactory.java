@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.concurrent.Immutable;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.ext.Provider;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,6 @@ import static com.palominolabs.jersey.cors.Ternary.TRUE;
  * in {@link CorsConfig} as Jersey params.
  */
 @Immutable
-@Provider
 public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(CorsResourceFilterFactory.class);
