@@ -6,6 +6,7 @@ import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -16,7 +17,7 @@ final class CorsPreflightResponseResourceFilter implements ResourceFilter {
 
     private final ContainerResponseFilter responseFilter;
 
-    CorsPreflightResponseResourceFilter(int maxAge, String allowMethods, String allowHeaders,
+    CorsPreflightResponseResourceFilter(int maxAge, @Nonnull String allowMethods, @Nonnull String allowHeaders,
         boolean allowCredentials) {
 
         responseFilter = new CorsPreflightContainerResponseFilter(maxAge, allowMethods, allowHeaders, allowCredentials);
@@ -55,9 +56,15 @@ final class CorsPreflightResponseResourceFilter implements ResourceFilter {
         public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
             MultivaluedMap<String, Object> h = response.getHttpHeaders();
             putIfNotPresent(h, CorsHeaders.MAX_AGE, Integer.toString(maxAge));
-            putIfNotPresent(h, CorsHeaders.ALLOW_METHODS, allowMethods);
-            putIfNotPresent(h, CorsHeaders.ALLOW_HEADERS, allowHeaders);
-            putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
+            if (!allowMethods.isEmpty()) {
+                putIfNotPresent(h, CorsHeaders.ALLOW_METHODS, allowMethods);
+            }
+            if (!allowHeaders.isEmpty()) {
+                putIfNotPresent(h, CorsHeaders.ALLOW_HEADERS, allowHeaders);
+            }
+            if (allowCredentials) {
+                putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
+            }
             return response;
         }
     }

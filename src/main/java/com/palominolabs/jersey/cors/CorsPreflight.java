@@ -19,9 +19,14 @@ import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
 public @interface CorsPreflight {
 
     /**
+     * value representing "use global defaults"
+     */
+    public static final int UNSET_MAX_AGE = -1;
+
+    /**
      * @return how many seconds the result of a preflight request can be cached by the user agent
      */
-    int maxAge() default -1;
+    int maxAge() default UNSET_MAX_AGE;
 
     /**
      * @return comma-separated list of allowed HTTP methods

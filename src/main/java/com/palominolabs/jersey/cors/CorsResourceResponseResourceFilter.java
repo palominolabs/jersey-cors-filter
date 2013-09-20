@@ -6,6 +6,7 @@ import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -14,7 +15,7 @@ final class CorsResourceResponseResourceFilter implements ResourceFilter {
 
     private final ContainerResponseFilter responseFilter;
 
-    CorsResourceResponseResourceFilter(String allowOrigin, String exposeHeaders,
+    CorsResourceResponseResourceFilter(@Nonnull String allowOrigin, @Nonnull String exposeHeaders,
         boolean allowCredentials) {
         responseFilter = new CorsResponseContainerResponseFilter(allowOrigin, exposeHeaders, allowCredentials);
     }
@@ -49,8 +50,12 @@ final class CorsResourceResponseResourceFilter implements ResourceFilter {
         public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
             MultivaluedMap<String, Object> h = response.getHttpHeaders();
             putIfNotPresent(h, CorsHeaders.ALLOW_ORIGIN, allowOrigin);
-            putIfNotPresent(h, CorsHeaders.EXPOSE_HEADERS, exposeHeaders);
-            putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
+            if (!exposeHeaders.isEmpty()) {
+                putIfNotPresent(h, CorsHeaders.EXPOSE_HEADERS, exposeHeaders);
+            }
+            if (allowCredentials) {
+                putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
+            }
             return response;
         }
     }

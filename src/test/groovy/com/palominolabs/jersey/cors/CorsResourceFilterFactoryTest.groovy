@@ -137,8 +137,8 @@ class CorsResourceFilterFactoryTest {
 
     assert 200 == r.statusCode
     assert ['*'] == r.headers.get(ALLOW_ORIGIN)
-    assert [''] == r.headers.get(EXPOSE_HEADERS)
-    assert ['false'] == r.headers.get(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
     assert !r.headers.containsKey(MAX_AGE)
     assert !r.headers.containsKey(ALLOW_METHODS)
     assert !r.headers.containsKey(ALLOW_HEADERS)
@@ -150,12 +150,12 @@ class CorsResourceFilterFactoryTest {
 
     assert 200 == r.statusCode
 
+    assert ['86400'] == r.headers.get(MAX_AGE)
+    assert ['GET'] == r.headers.get(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_CREDENTIALS)
     assert !r.headers.containsKey(ALLOW_ORIGIN)
     assert !r.headers.containsKey(EXPOSE_HEADERS)
-    assert ['86400'] == r.headers.get(MAX_AGE)
-    assert ['false'] == r.headers.get(ALLOW_CREDENTIALS)
-    assert ['GET'] == r.headers.get(ALLOW_METHODS)
-    assert [''] == r.headers.get(ALLOW_HEADERS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)
   }
 
   private static void assertOverriddenDefaults(HashMap<String, Object> props) {

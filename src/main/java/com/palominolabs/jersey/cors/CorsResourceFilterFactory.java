@@ -9,6 +9,7 @@ import com.sun.jersey.spi.container.ResourceFilterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.core.Context;
@@ -23,6 +24,7 @@ import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_METHODS;
 import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_ORIGIN;
 import static com.palominolabs.jersey.cors.CorsConfig.EXPOSE_HEADERS;
 import static com.palominolabs.jersey.cors.CorsConfig.MAX_AGE;
+import static com.palominolabs.jersey.cors.CorsPreflight.UNSET_MAX_AGE;
 import static com.palominolabs.jersey.cors.Ternary.FALSE;
 import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
 import static com.palominolabs.jersey.cors.Ternary.TRUE;
@@ -55,6 +57,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
     public CorsResourceFilterFactory(@Context ResourceConfig resourceConfig) {
         Map<String, Object> props = resourceConfig.getProperties();
+        // load properties, if they are set, otherwise use hardcoded defaults.
         defAllowOrigin = getStringProp(props, ALLOW_ORIGIN, "*");
         defExposeHeaders = getStringProp(props, EXPOSE_HEADERS, "");
         defAllowCredentials = getBooleanProp(props, ALLOW_CREDENTIALS, false) ? TRUE : FALSE;
@@ -104,7 +107,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
     }
 
     private ResourceFilter getPreflightResponseFilter(CorsPreflight cors) {
-        int maxAge = cors.maxAge() == -1 ? defMaxAge : cors.maxAge();
+        int maxAge = cors.maxAge() == UNSET_MAX_AGE ? defMaxAge : cors.maxAge();
         String allowMethods = cors.allowMethods().isEmpty() ? defAllowMethods : cors.allowMethods();
         String allowHeaders = cors.allowHeaders().isEmpty() ? defAllowHeaders : cors.allowHeaders();
         Ternary allowCredentials = cors.allowCredentials() == NEUTRAL ? defAllowCredentials : cors.allowCredentials();
@@ -137,6 +140,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
         return props.containsKey(propName) ? getBoolean(props.get(propName)) : defaultValue;
     }
 
+    @Nonnull
     private static String getString(Object propValue) {
         if (propValue instanceof String) {
             return (String) propValue;
