@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.Immutable;
 import javax.ws.rs.OPTIONS;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.ext.Provider;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +28,16 @@ import static com.palominolabs.jersey.cors.Ternary.FALSE;
 import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
 import static com.palominolabs.jersey.cors.Ternary.TRUE;
 
+/**
+ * Jersey ResourceFilterFactory that applies filters to set appropriate headers regular resource methods (@GET, @POST)
+ * annotated with {@link Cors} as well as preflight @OPTIONS methods annotated with {@link CorsPreflight}.
+ *
+ * The default settings allow all origins to use GET and instruct the user agent to cache that for 1 day, but do not
+ * allow any other headers, methods, or credentials. You can override these defaults by specifying the properties found
+ * in {@link CorsConfig} as Jersey params.
+ */
 @Immutable
+@Provider
 public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(CorsResourceFilterFactory.class);
@@ -44,13 +55,13 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
     @VisibleForTesting
     final String defAllowHeaders;
 
-    public CorsResourceFilterFactory(ResourceConfig resourceConfig) {
+    public CorsResourceFilterFactory(@Context ResourceConfig resourceConfig) {
         Map<String, Object> props = resourceConfig.getProperties();
         defAllowOrigin = getStringProp(props, ALLOW_ORIGIN, "*");
         defExposeHeaders = getStringProp(props, EXPOSE_HEADERS, "");
         defAllowCredentials = getBooleanProp(props, ALLOW_CREDENTIALS, false) ? TRUE : FALSE;
         defMaxAge = getIntProp(props, MAX_AGE, 24 * 3600);
-        defAllowMethods = getStringProp(props, ALLOW_METHODS, "");
+        defAllowMethods = getStringProp(props, ALLOW_METHODS, "GET");
         defAllowHeaders = getStringProp(props, ALLOW_HEADERS, "");
     }
 
@@ -62,14 +73,19 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
         Method method = abstractMethod.getMethod();
         if (method.isAnnotationPresent(Cors.class)) {
-            // apply filter
+            if (method.isAnnotationPresent(OPTIONS.class)) {
+                logger.error("Resource method " + abstractMethod +
+                    " is annotated with @Cors, which is not applicable for methods annotated with @OPTIONS");
+                return null;
+            }
+
             return newArrayList(getResourceResponseFilter(method.getAnnotation(Cors.class)));
         }
 
         if (method.isAnnotationPresent(CorsPreflight.class)) {
             if (!method.isAnnotationPresent(OPTIONS.class)) {
                 logger.error("Resource method " + abstractMethod +
-                    " is annotated with CorsPreflight, which is only applicable when also annotated with OPTIONS");
+                    " is annotated with @CorsPreflight, which is only applicable for methods annotated with @OPTIONS");
                 return null;
             }
 
@@ -80,7 +96,6 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
     }
 
     private ResourceFilter getResourceResponseFilter(Cors cors) {
-
         String allowOrigin = cors.allowOrigin().isEmpty() ? defAllowOrigin : cors.allowOrigin();
         String exposeHeaders = cors.exposeHeaders().isEmpty() ? defExposeHeaders : cors.exposeHeaders();
         Ternary allowCredentials =
@@ -95,6 +110,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
         String allowMethods = cors.allowMethods().isEmpty() ? defAllowMethods : cors.allowMethods();
         String allowHeaders = cors.allowHeaders().isEmpty() ? defAllowHeaders : cors.allowHeaders();
         Ternary allowCredentials = cors.allowCredentials() == NEUTRAL ? defAllowCredentials : cors.allowCredentials();
+
         return new CorsPreflightResponseResourceFilter(maxAge, allowMethods, allowHeaders,
             getBooleanFromTernary(allowCredentials));
     }

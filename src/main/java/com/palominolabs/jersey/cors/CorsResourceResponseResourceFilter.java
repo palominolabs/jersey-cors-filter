@@ -7,6 +7,7 @@ import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
 
 import javax.annotation.concurrent.Immutable;
+import javax.ws.rs.core.MultivaluedMap;
 
 @Immutable
 final class CorsResourceResponseResourceFilter implements ResourceFilter {
@@ -46,7 +47,17 @@ final class CorsResourceResponseResourceFilter implements ResourceFilter {
 
         @Override
         public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
-            return null;// TODO
+            MultivaluedMap<String, Object> h = response.getHttpHeaders();
+            putIfNotPresent(h, CorsHeaders.ALLOW_ORIGIN, allowOrigin);
+            putIfNotPresent(h, CorsHeaders.EXPOSE_HEADERS, exposeHeaders);
+            putIfNotPresent(h, CorsHeaders.ALLOW_CREDENTIALS, Boolean.toString(allowCredentials));
+            return response;
+        }
+
+        private void putIfNotPresent(MultivaluedMap<String, Object> h, String header, String value) {
+            if (!h.containsKey(header)) {
+                h.putSingle(header, value);
+            }
         }
     }
 }

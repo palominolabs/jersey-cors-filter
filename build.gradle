@@ -13,20 +13,35 @@ repositories {
 ext {
   depVersions = [
       jersey: '1.17.1',
-      slf4j: '1.7.5'
+      slf4j: '1.7.5',
+      jetty: '9.0.5.v20130815'
   ]
+}
+
+configurations {
+  all*.exclude group: 'commons-logging', module: 'commons-logging'
+  all*.exclude group: 'commons-logging', module: 'commons-logging-api'
 }
 
 dependencies {
   compile "com.sun.jersey:jersey-core:$depVersions.jersey"
   compile "com.sun.jersey:jersey-server:$depVersions.jersey"
+  compile "com.sun.jersey:jersey-servlet:$depVersions.jersey"
 
   compile 'com.google.code.findbugs:jsr305:2.0.1'
   compile 'com.google.guava:guava:15.0'
 
   compile "org.slf4j:slf4j-api:$depVersions.slf4j"
   testRuntime "org.slf4j:slf4j-simple:$depVersions.slf4j"
+  testRuntime "org.slf4j:log4j-over-slf4j:$depVersions.slf4j"
+  testRuntime "org.slf4j:jcl-over-slf4j:$depVersions.slf4j"
+  testCompile "org.slf4j:jul-to-slf4j:$depVersions.slf4j"
 
   testCompile 'junit:junit:4.11'
   testCompile 'org.codehaus.groovy:groovy-all:2.1.7'
+
+  testCompile "org.eclipse.jetty:jetty-servlet:$depVersions.jetty"
+
+  testCompile 'com.ning:async-http-client:1.7.19'
+
 }
