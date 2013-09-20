@@ -1,5 +1,6 @@
 package com.palominolabs.jersey.cors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.model.AbstractMethod;
 import com.sun.jersey.api.model.AbstractResourceMethod;
@@ -15,6 +16,12 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_CREDENTIALS;
+import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_HEADERS;
+import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_METHODS;
+import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_ORIGIN;
+import static com.palominolabs.jersey.cors.CorsConfig.EXPOSE_HEADERS;
+import static com.palominolabs.jersey.cors.CorsConfig.MAX_AGE;
 import static com.palominolabs.jersey.cors.Ternary.FALSE;
 import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
 import static com.palominolabs.jersey.cors.Ternary.TRUE;
@@ -22,21 +29,20 @@ import static com.palominolabs.jersey.cors.Ternary.TRUE;
 @Immutable
 public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
-    public static final String MAX_AGE = "palominolabs.jersey.cors.maxAage";
-    public static final String ALLOW_METHODS = "palominolabs.jersey.cors.allowMethods";
-    public static final String ALLOW_HEADERS = "palominolabs.jersey.cors.allowHeaders";
-    public static final String ALLOW_CREDENTIALS = "palominolabs.jersey.cors.allowCredentials";
-    public static final String ALLOW_ORIGIN = "palominolabs.jersey.cors.allowOrigin";
-    public static final String EXPOSE_HEADERS = "palominolabs.jersey.cors.exposeHeaders";
-
     private static final Logger logger = LoggerFactory.getLogger(CorsResourceFilterFactory.class);
 
-    private final int defMaxAge;
-    private final String defAllowOrigin;
-    private final String defExposeHeaders;
-    private final Ternary defAllowCredentials;
-    private final String defAllowMethods;
-    private final String defAllowHeaders;
+    @VisibleForTesting
+    final int defMaxAge;
+    @VisibleForTesting
+    final String defAllowOrigin;
+    @VisibleForTesting
+    final String defExposeHeaders;
+    @VisibleForTesting
+    final Ternary defAllowCredentials;
+    @VisibleForTesting
+    final String defAllowMethods;
+    @VisibleForTesting
+    final String defAllowHeaders;
 
     public CorsResourceFilterFactory(ResourceConfig resourceConfig) {
         Map<String, Object> props = resourceConfig.getProperties();
