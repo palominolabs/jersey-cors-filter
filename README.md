@@ -1,4 +1,4 @@
-This library makes it easy to add basic CORS support to your [Jersey](https://jersey.java.net/) app. It is compatible with Jersey 1. Jersey 2 still lacks some features that [we](http://palominolabs.com) use, but as Jersey 2 catches up we'll add support for that as well.
+This library makes it easy to add basic CORS support to your [Jersey 1](https://jersey.java.net/) app.
 
 # Usage
 To get started, add a dependency on `com.palominolabs.jersey:jersey-cors-filter:VERSION` where `VERSION` is the latest released version.
@@ -13,4 +13,4 @@ Out of the box, the filter will send `Access-Control-Allow-Origin: *` for method
 
 If you need to change those defaults, or specify other headers like `Access-Control-Allow-Headers`, [`CorsConfig`](https://github.com/palominolabs/jersey-cors-filter/blob/master/src/main/java/com/palominolabs/jersey/cors/CorsConfig.java) defines various param names to set. These are loaded by the filter out of the standard Jersey property mechanism. If you're using Jersey via the Servlet API, setting servlet init params should do the trick.
 
-If you need to override any of these settings for a method, you can do so via the optional values on `@Cors` and `@CorsPreflight`.
+If you need to override any of these settings for a method, you can do so via the optional values on `@Cors` and `@CorsPreflight`, as in `@Cors(exposeHeaders = "X-FooBar")`.
