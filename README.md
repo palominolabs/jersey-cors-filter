@@ -5,13 +5,12 @@ To get started, add a dependency to your Gradle build file:
 
     compile com.palominolabs.jersey:jersey-cors-filter:VERSION
 
-where `VERSION` is the latest released version.  If you're using Maven, know that your life could be greatly improved by switchign to Gradle and use this dependency block:
+where `VERSION` is the latest released version.  If you're using Maven, know that your life could be greatly improved by switching to Gradle and use this dependency block:
 
     <dependency>
         <groupId>com.palominolabs.jersey</groupId>
         <artifactId>jersey-cors-filter</artifactId>
         <version>VERSION</version>
-        <scope>compile</scope>
     </dependency>
 
 
