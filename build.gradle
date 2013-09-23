@@ -1,15 +1,14 @@
 apply plugin: 'java'
 apply plugin: 'groovy'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 group = 'com.palominolabs.jersey'
 version = '1.0.0-SNAPSHOT'
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
-
-repositories {
-  mavenCentral()
-}
 
 ext {
   depVersions = [
@@ -19,15 +18,10 @@ ext {
   ]
 }
 
-configurations {
-  all*.exclude group: 'commons-logging', module: 'commons-logging'
-  all*.exclude group: 'commons-logging', module: 'commons-logging-api'
-}
-
 dependencies {
   compile "com.sun.jersey:jersey-core:$depVersions.jersey"
   compile "com.sun.jersey:jersey-server:$depVersions.jersey"
-  compile "com.sun.jersey:jersey-servlet:$depVersions.jersey"
+  testCompile "com.sun.jersey:jersey-servlet:$depVersions.jersey"
 
   compile 'com.google.code.findbugs:jsr305:2.0.1'
   compile 'com.google.guava:guava:15.0'
@@ -45,4 +39,74 @@ dependencies {
 
   testCompile 'com.ning:async-http-client:1.7.19'
 
+}
+
+repositories {
+  mavenCentral()
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  from sourceSets.main.allJava
+  classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  from javadoc.destinationDir
+  classifier = 'javadoc'
+}
+
+artifacts {
+  // register in 'archives' config so they will be signed
+  archives sourcesJar
+  archives javadocJar
+}
+
+signing {
+  required { gradle.taskGraph.hasTask("uploadArchives") }
+  sign configurations.archives
+}
+
+// Set sonatypeUsername and sonatypePassword in your ~/.gradle/gradle.properties to be able to use this.
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      beforeDeployment { deployment -> signing.signPom(deployment) }
+
+      repository(url: isReleaseVersion ?
+        "https://oss.sonatype.org/service/local/staging/deploy/maven2/" :
+        "https://oss.sonatype.org/content/repositories/snapshots/") {
+        def u = hasProperty('sonatypeUsername') ? sonatypeUsername : 'FIXME'
+        def p = hasProperty('sonatypePassword') ? sonatypePassword : 'FIXME'
+        authentication(userName: u, password: p)
+      }
+
+      pom.project {
+        name 'jersey-cors-filter'
+        packaging 'jar'
+        description 'A Jersey filter for adding CORS headers'
+        url 'https://github.com/palominolabs/jersey-cors-filter'
+
+        scm {
+          url 'scm:git@github.com:palominolabs/jersey-cors-filter.git'
+          connection 'scm:git@github.com:palominolabs/jersey-cors-filter.git'
+          developerConnection 'scm:git@github.com:palominolabs/jersey-cors-filter.git'
+        }
+
+        licenses {
+          license {
+            name 'The Apache Software License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution 'repo'
+          }
+        }
+
+        developers {
+          developer {
+            id 'marshallpierce'
+            name 'Marshall Pierce'
+          }
+        }
+      }
+    }
+  }
 }
