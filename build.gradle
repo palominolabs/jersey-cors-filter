@@ -75,8 +75,8 @@ uploadArchives {
       repository(url: isReleaseVersion ?
         "https://oss.sonatype.org/service/local/staging/deploy/maven2/" :
         "https://oss.sonatype.org/content/repositories/snapshots/") {
-        def u = hasProperty('sonatypeUsername') ? sonatypeUsername : 'FIXME'
-        def p = hasProperty('sonatypePassword') ? sonatypePassword : 'FIXME'
+        def u = project.hasProperty('sonatypeUsername') ? sonatypeUsername : 'FIXME'
+        def p = project.hasProperty('sonatypePassword') ? sonatypePassword : 'FIXME'
         authentication(userName: u, password: p)
       }
 
