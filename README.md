@@ -17,13 +17,24 @@ where `VERSION` is the latest released version.  If you're using Maven, know tha
 ## Registering the filter with Jersey
 This library includes a `ResourceFilterFactory` implementation: [`CorsResourceFilterFactory`](https://github.com/palominolabs/jersey-cors-filter/blob/master/src/main/java/com/palominolabs/jersey/cors/CorsResourceFilterFactory.java). You need to inform Jersey that you want to use this as a filter. Typically you would do this by setting the Jersey init param `com.sun.jersey.spi.container.ResourceFilters` (which, if using the servlet/Jersey integration, can be done by setting servlet init params); the param name is also available more conveniently in code as `ResourceConfig.PROPERTY_RESOURCE_FILTER_FACTORIES`.
 
+### With embedded Jetty's ServletContainer
 This is how to do it when using the jersey-servlet `ServletContainer` servlet with embedded Jetty:
 
-    ServletHolder servletHolder = new ServletHolder(new ServletContainer())
+    ServletHolder servletHolder = new ServletHolder(new ServletContainer());
     servletHolder.initParameters.put(
             ResourceConfig.PROPERTY_RESOURCE_FILTER_FACTORIES,
-            CorsResourceFilterFactory.canonicalName
-    )
+            CorsResourceFilterFactory.class.getCanonicalName()
+    );
+
+### With Guice
+If your app uses [Guice](http://code.google.com/p/google-guice/), you need to add the CorsResourceFilterFactory to the properties used for instantiating the GuiceContainer.  In your ServletModule.configureServlets():
+
+    bind(GuiceContainer.class);
+    HashMap<String, String> guiceContainerProps = Maps.newHashMap();
+    guiceContainerProps.put(ResourceConfig.PROPERTY_RESOURCE_FILTER_FACTORIES,
+            CorsResourceFilterFactory.class.getCanonicalName());
+
+    serve("/*").with(GuiceContainer.class, guiceContainerProps);
 
 ## Configuring CORS headers
 Once the filter is registered, you can annotate your resource methods (`@GET`, `@POST`, etc.) with [`@Cors`](https://github.com/palominolabs/jersey-cors-filter/blob/master/src/main/java/com/palominolabs/jersey/cors/Cors.java) to send basic resource response headers and your `@OPTIONS` methods with [`@CorsPreflight`](https://github.com/palominolabs/jersey-cors-filter/blob/master/src/main/java/com/palominolabs/jersey/cors/CorsPreflight.java) to send preflight request response headers.
