@@ -42,4 +42,11 @@ public @interface CorsPreflight {
      * @return true if request that is being preflighted should be allowed to be made with the 'credentials' flag
      */
     Ternary allowCredentials() default NEUTRAL;
+
+    /**
+     * Note that "*" cannot be used if credentials are provided; you must use a specific origin.
+     *
+     * @return The string "*" or the URI that is an allowed origin
+     */
+    String allowOrigin() default "";
 }

@@ -160,7 +160,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
     private ResourceFilter getPreflightResponseFilter(CorsPreflightConfig config) {
         return new CorsPreflightResponseResourceFilter(config.maxAge, config.allowMethods, config.allowHeaders,
-            getBooleanFromTernary(config.allowCredentials));
+            getBooleanFromTernary(config.allowCredentials), config.allowOrigin);
     }
 
     /**
@@ -169,7 +169,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      * @param config config to write to
      * @param ann    annotation to read from
      */
-    private void applyCorsAnnotation(CorsResourceConfig config, Cors ann) {
+    private static void applyCorsAnnotation(CorsResourceConfig config, Cors ann) {
         if (!ann.allowOrigin().isEmpty()) {
             config.allowOrigin = ann.allowOrigin();
         }
@@ -189,7 +189,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      * @param config config to write to
      * @param ann    annotation to read from
      */
-    private void applyCorsPreflightAnnotation(CorsPreflightConfig config, CorsPreflight ann) {
+    private static void applyCorsPreflightAnnotation(CorsPreflightConfig config, CorsPreflight ann) {
         if (ann.maxAge() != UNSET_MAX_AGE) {
             config.maxAge = ann.maxAge();
         }
@@ -204,6 +204,10 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
 
         if (ann.allowCredentials() != NEUTRAL) {
             config.allowCredentials = ann.allowCredentials();
+        }
+
+        if (!ann.allowOrigin().isEmpty()) {
+            config.allowOrigin = ann.allowOrigin();
         }
     }
 
@@ -229,6 +233,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
         c.allowMethods = defAllowMethods;
         c.allowHeaders = defAllowHeaders;
         c.allowCredentials = defAllowCredentials;
+        c.allowOrigin = defAllowOrigin;
         return c;
     }
 
@@ -237,7 +242,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      * @return true for TRUE, false for FALSE
      * @throws IllegalStateException on NEUTRAL
      */
-    private boolean getBooleanFromTernary(Ternary allowCredentials) {
+    private static boolean getBooleanFromTernary(Ternary allowCredentials) {
         switch (allowCredentials) {
             case TRUE:
                 return true;
@@ -309,5 +314,6 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
         String allowMethods;
         String allowHeaders;
         Ternary allowCredentials;
+        String allowOrigin;
     }
 }

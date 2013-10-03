@@ -18,9 +18,10 @@ final class CorsPreflightResponseResourceFilter implements ResourceFilter {
     private final ContainerResponseFilter responseFilter;
 
     CorsPreflightResponseResourceFilter(int maxAge, @Nonnull String allowMethods, @Nonnull String allowHeaders,
-        boolean allowCredentials) {
+        boolean allowCredentials, String allowOrigin) {
 
-        responseFilter = new CorsPreflightContainerResponseFilter(maxAge, allowMethods, allowHeaders, allowCredentials);
+        responseFilter = new CorsPreflightContainerResponseFilter(maxAge, allowMethods, allowHeaders, allowCredentials,
+            allowOrigin);
     }
 
     @Override
@@ -44,17 +45,21 @@ final class CorsPreflightResponseResourceFilter implements ResourceFilter {
 
         private final boolean allowCredentials;
 
+        private final String allowOrigin;
+
         private CorsPreflightContainerResponseFilter(int maxAge, String allowMethods, String allowHeaders,
-            boolean allowCredentials) {
+            boolean allowCredentials, String allowOrigin) {
             this.maxAge = maxAge;
             this.allowMethods = allowMethods;
             this.allowHeaders = allowHeaders;
             this.allowCredentials = allowCredentials;
+            this.allowOrigin = allowOrigin;
         }
 
         @Override
         public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
             MultivaluedMap<String, Object> h = response.getHttpHeaders();
+            putIfNotPresent(h, CorsHeaders.ALLOW_ORIGIN, allowOrigin);
             putIfNotPresent(h, CorsHeaders.MAX_AGE, Integer.toString(maxAge));
             if (!allowMethods.isEmpty()) {
                 putIfNotPresent(h, CorsHeaders.ALLOW_METHODS, allowMethods);

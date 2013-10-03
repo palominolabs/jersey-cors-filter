@@ -222,8 +222,8 @@ class CorsResourceFilterFactoryTest {
 
     assert ['86400'] == r.headers.get(MAX_AGE)
     assert ['GET'] == r.headers.get(ALLOW_METHODS)
+    assert ['*'] == r.headers.get(ALLOW_ORIGIN)
     assert !r.headers.containsKey(ALLOW_CREDENTIALS)
-    assert !r.headers.containsKey(ALLOW_ORIGIN)
     assert !r.headers.containsKey(EXPOSE_HEADERS)
     assert !r.headers.containsKey(ALLOW_HEADERS)
   }
@@ -255,7 +255,7 @@ class CorsResourceFilterFactoryTest {
     assert ['POST'] == r.headers.get(ALLOW_METHODS)
     assert ['true'] == r.headers.get(ALLOW_CREDENTIALS)
     assert ['x-foo'] == r.headers.get(ALLOW_HEADERS)
-    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert ['http://bar.com'] == r.headers.get(ALLOW_ORIGIN)
     assert !r.headers.containsKey(EXPOSE_HEADERS)
   }
 
@@ -305,7 +305,7 @@ class CorsResourceFilterFactoryTest {
     }
 
     @OPTIONS
-    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345)
+    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
     String options() {
       return 'foo'
     }
@@ -328,7 +328,7 @@ class CorsResourceFilterFactoryTest {
 
   @Path("classAnnotatedWithOverrides")
   @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
-  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345)
+  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
   static class ClassAnnotatedWithOverridesResource {
     @GET
     String get() {
@@ -343,7 +343,7 @@ class CorsResourceFilterFactoryTest {
 
   @Path("classAnnotatedWithOverridesAndMethodAnnotated")
   @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
-  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345)
+  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
   static class ClassAnnotatedWithOverridesAndMethodAnnotatedResource {
     @GET
     @Cors
@@ -360,7 +360,7 @@ class CorsResourceFilterFactoryTest {
 
   @Path("classAnnotatedWithOverridesAndMethodAnnotatedWithOverrides")
   @Cors(allowCredentials = FALSE, allowOrigin = 'http://asdfasdf.com', exposeHeaders = 'x-asdfasdf')
-  @CorsPreflight(allowCredentials = FALSE, allowHeaders = 'x-asdfasdf', allowMethods = 'DELETE', maxAge = 54321)
+  @CorsPreflight(allowCredentials = FALSE, allowHeaders = 'x-asdfasdf', allowMethods = 'DELETE', maxAge = 54321, allowOrigin = 'http://asdfasdf.com')
   static class ClassAnnotatedWithOverridesAndMethodAnnotatedResourceWithOverrides {
     @GET
     @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
@@ -369,7 +369,7 @@ class CorsResourceFilterFactoryTest {
     }
 
     @OPTIONS
-    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345)
+    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
     String options() {
       return 'foo'
     }
