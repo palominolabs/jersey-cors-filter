@@ -7,4 +7,5 @@ final class CorsHeaders {
     static final String ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
     static final String ALLOW_METHODS = "Access-Control-Allow-Methods";
     static final String ALLOW_HEADERS = "Access-Control-Allow-Headers";
+    static final String ORIGIN = "Origin";
 }

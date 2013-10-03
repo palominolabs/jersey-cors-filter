@@ -58,6 +58,11 @@ final class CorsPreflightResponseResourceFilter implements ResourceFilter {
 
         @Override
         public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
+            String incomingOrigin = request.getHeaderValue(CorsHeaders.ORIGIN);
+            if (incomingOrigin == null) {
+                return response;
+            }
+
             MultivaluedMap<String, Object> h = response.getHttpHeaders();
             putIfNotPresent(h, CorsHeaders.ALLOW_ORIGIN, allowOrigin);
             putIfNotPresent(h, CorsHeaders.MAX_AGE, Integer.toString(maxAge));

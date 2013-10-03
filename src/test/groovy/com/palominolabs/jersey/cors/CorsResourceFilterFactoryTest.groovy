@@ -106,7 +106,7 @@ class CorsResourceFilterFactoryTest {
 
   @Test
   public void testGetUnAnnotated() {
-    Response r = http.prepareGet('http://localhost:8080/unAnnotated').execute().get()
+    Response r = doGet('http://localhost:8080/unAnnotated')
 
     assert 200 == r.statusCode
     assert !r.headers.containsKey(ALLOW_ORIGIN)
@@ -116,11 +116,10 @@ class CorsResourceFilterFactoryTest {
     assert !r.headers.containsKey(ALLOW_METHODS)
     assert !r.headers.containsKey(ALLOW_HEADERS)
   }
-
 
   @Test
   public void testOptionsUnAnnotated() {
-    Response r = http.prepareOptions('http://localhost:8080/unAnnotated').execute().get()
+    Response r = doOptions('http://localhost:8080/unAnnotated')
 
     assert 200 == r.statusCode
     assert !r.headers.containsKey(ALLOW_ORIGIN)
@@ -131,90 +130,126 @@ class CorsResourceFilterFactoryTest {
     assert !r.headers.containsKey(ALLOW_HEADERS)
   }
 
+
   @Test
   public void testGetAnnotatedNoOverrides() {
-    Response r = http.prepareGet('http://localhost:8080/annotatedNoOverrides').execute().get()
+    Response r = doGet('http://localhost:8080/annotatedNoOverrides')
 
     assertDefaultGetResponse(r)
   }
 
   @Test
   public void testOptionsAnnotatedNoOverrides() {
-    Response r = http.prepareOptions('http://localhost:8080/annotatedNoOverrides').execute().get()
+    Response r = doOptions('http://localhost:8080/annotatedNoOverrides')
 
     assertDefaultOptionsResponse(r)
   }
 
   @Test
   public void testGetClassAnnotatedNoOverrides() {
-    Response r = http.prepareGet('http://localhost:8080/classAnnotatedNoOverrides').execute().get()
+    Response r = doGet('http://localhost:8080/classAnnotatedNoOverrides')
 
     assertDefaultGetResponse(r)
   }
 
   @Test
   public void testOptionsClassAnnotatedNoOverrides() {
-    Response r = http.prepareOptions('http://localhost:8080/classAnnotatedNoOverrides').execute().get()
+    Response r = doOptions('http://localhost:8080/classAnnotatedNoOverrides')
 
     assertDefaultOptionsResponse(r)
   }
 
   @Test
   public void testGetAnnotatedWithOverrides() {
-    Response r = http.prepareGet('http://localhost:8080/annotatedWithOverrides').execute().get()
+    Response r = doGet('http://localhost:8080/annotatedWithOverrides')
 
     assertOverriddenGetResponse(r)
   }
 
   @Test
   public void testOptionsAnnotatedWithOverrides() {
-    Response r = http.prepareOptions('http://localhost:8080/annotatedWithOverrides').execute().get()
+    Response r = doOptions('http://localhost:8080/annotatedWithOverrides')
 
     assertOverriddenOptionsResponse(r)
   }
 
   @Test
   public void testGetClassAnnotatedWithOverrides() {
-    Response r = http.prepareGet('http://localhost:8080/classAnnotatedWithOverrides').execute().get()
+    Response r = doGet('http://localhost:8080/classAnnotatedWithOverrides')
 
     assertOverriddenGetResponse(r)
   }
 
   @Test
   public void testOptionsClassAnnotatedWithOverrides() {
-    Response r = http.prepareOptions('http://localhost:8080/classAnnotatedWithOverrides').execute().get()
+    Response r = doOptions('http://localhost:8080/classAnnotatedWithOverrides')
 
     assertOverriddenOptionsResponse(r)
   }
 
   @Test
   public void testGetClassAnnotatedWithOverridesAndMethodAnnotated() {
-    Response r = http.prepareGet('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotated').execute().get()
+    Response r = doGet('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotated')
 
     assertOverriddenGetResponse(r)
   }
 
   @Test
   public void testOptionsClassAnnotatedWithOverridesAndMethodAnnotated() {
-    Response r = http.prepareOptions('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotated').execute()
-        .get()
-
+    Response r = doOptions('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotated')
     assertOverriddenOptionsResponse(r)
   }
 
   @Test
   public void testGetClassAnnotatedWithOverridesAndMethodAnnotatedWithOverrides() {
-    Response r = http.prepareGet('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotatedWithOverrides').execute().get()
+    Response r = doGet('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotatedWithOverrides')
 
     assertOverriddenGetResponse(r)
   }
 
   @Test
   public void testOptionsClassAnnotatedWithOverridesAndMethodAnnotatedWithOverrides() {
-    Response r = http.prepareOptions('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotatedWithOverrides').execute()
-        .get()
+    Response r = doOptions('http://localhost:8080/classAnnotatedWithOverridesAndMethodAnnotatedWithOverrides')
 
     assertOverriddenOptionsResponse(r)
+  }
+
+  @Test
+  public void testDontSendHeadersOnGetIfNoOriginHeader() throws Exception {
+    Response r = http.prepareGet('http://localhost:8080/annotatedNoOverrides').execute().get()
+
+    assert 200 == r.statusCode
+    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert !r.headers.containsKey(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
+    assert !r.headers.containsKey(MAX_AGE)
+    assert !r.headers.containsKey(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)  }
+
+  @Test
+  public void testDontSendHeadersOnOptionsIfNoOriginHeader() throws Exception {
+    Response r = http.prepareOptions('http://localhost:8080/annotatedNoOverrides').execute().get()
+
+    assert 200 == r.statusCode
+    assert !r.headers.containsKey(ALLOW_ORIGIN)
+    assert !r.headers.containsKey(ALLOW_CREDENTIALS)
+    assert !r.headers.containsKey(EXPOSE_HEADERS)
+    assert !r.headers.containsKey(MAX_AGE)
+    assert !r.headers.containsKey(ALLOW_METHODS)
+    assert !r.headers.containsKey(ALLOW_HEADERS)  }
+
+  private Response doGet(String url) {
+    AsyncHttpClient.BoundRequestBuilder req = http.prepareGet(url)
+    req.addHeader("Origin", 'http://foo.com')
+
+    return req.execute().get()
+  }
+
+  private Response doOptions(String url) {
+    AsyncHttpClient.BoundRequestBuilder req = http.prepareOptions(url)
+    req.addHeader("Origin", 'http://foo.com')
+
+    return req.execute().get()
   }
 
   private static void assertDefaultOptionsResponse(Response r) {
@@ -305,7 +340,8 @@ class CorsResourceFilterFactoryTest {
     }
 
     @OPTIONS
-    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
+    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345,
+        allowOrigin = 'http://bar.com')
     String options() {
       return 'foo'
     }
@@ -328,7 +364,8 @@ class CorsResourceFilterFactoryTest {
 
   @Path("classAnnotatedWithOverrides")
   @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
-  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
+  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345,
+      allowOrigin = 'http://bar.com')
   static class ClassAnnotatedWithOverridesResource {
     @GET
     String get() {
@@ -343,7 +380,8 @@ class CorsResourceFilterFactoryTest {
 
   @Path("classAnnotatedWithOverridesAndMethodAnnotated")
   @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
-  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
+  @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345,
+      allowOrigin = 'http://bar.com')
   static class ClassAnnotatedWithOverridesAndMethodAnnotatedResource {
     @GET
     @Cors
@@ -360,7 +398,8 @@ class CorsResourceFilterFactoryTest {
 
   @Path("classAnnotatedWithOverridesAndMethodAnnotatedWithOverrides")
   @Cors(allowCredentials = FALSE, allowOrigin = 'http://asdfasdf.com', exposeHeaders = 'x-asdfasdf')
-  @CorsPreflight(allowCredentials = FALSE, allowHeaders = 'x-asdfasdf', allowMethods = 'DELETE', maxAge = 54321, allowOrigin = 'http://asdfasdf.com')
+  @CorsPreflight(allowCredentials = FALSE, allowHeaders = 'x-asdfasdf', allowMethods = 'DELETE', maxAge = 54321,
+      allowOrigin = 'http://asdfasdf.com')
   static class ClassAnnotatedWithOverridesAndMethodAnnotatedResourceWithOverrides {
     @GET
     @Cors(allowCredentials = TRUE, allowOrigin = 'http://foo.com', exposeHeaders = 'x-foo')
@@ -369,7 +408,8 @@ class CorsResourceFilterFactoryTest {
     }
 
     @OPTIONS
-    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345, allowOrigin = 'http://bar.com')
+    @CorsPreflight(allowCredentials = TRUE, allowHeaders = 'x-foo', allowMethods = 'POST', maxAge = 12345,
+        allowOrigin = 'http://bar.com')
     String options() {
       return 'foo'
     }
