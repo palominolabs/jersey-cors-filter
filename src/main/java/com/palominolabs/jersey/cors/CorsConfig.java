@@ -3,7 +3,7 @@ package com.palominolabs.jersey.cors;
 /**
  * Jersey property names to use to configure what corresponding HTTP headers should be included in responses.
  */
-final class CorsConfig {
+public final class CorsConfig {
     private static final String PREFIX = "com.palominolabs.jersey.cors.";
 
     /**
