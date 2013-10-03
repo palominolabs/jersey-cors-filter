@@ -106,7 +106,8 @@ If you need to override any of these settings for a method or class, you can do 
         allowCredentials = FALSE,
         allowHeaders = 'x-asdfasdf',
         allowMethods = 'DELETE',
-        maxAge = 54321
+        maxAge = 54321,
+        allowOrigin = 'http://foo.com'
     )
     static class FooResource {
         @GET
