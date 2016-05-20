@@ -1,11 +1,5 @@
 package com.palominolabs.jersey.cors;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.sun.jersey.api.core.ResourceConfig;
-import com.sun.jersey.api.model.AbstractMethod;
-import com.sun.jersey.api.model.AbstractResourceMethod;
-import com.sun.jersey.spi.container.ResourceFilter;
-import com.sun.jersey.spi.container.ResourceFilterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,22 +7,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.ws.rs.OPTIONS;
-import javax.ws.rs.core.Context;
+import javax.ws.rs.container.DynamicFeature;
+import javax.ws.rs.container.ResourceInfo;
+import javax.ws.rs.core.FeatureContext;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Map;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_CREDENTIALS;
-import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_HEADERS;
-import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_METHODS;
-import static com.palominolabs.jersey.cors.CorsConfig.ALLOW_ORIGIN;
-import static com.palominolabs.jersey.cors.CorsConfig.EXPOSE_HEADERS;
-import static com.palominolabs.jersey.cors.CorsConfig.MAX_AGE;
+import static com.palominolabs.jersey.cors.CorsConfig.*;
 import static com.palominolabs.jersey.cors.CorsPreflight.UNSET_MAX_AGE;
-import static com.palominolabs.jersey.cors.Ternary.FALSE;
-import static com.palominolabs.jersey.cors.Ternary.NEUTRAL;
-import static com.palominolabs.jersey.cors.Ternary.TRUE;
+import static com.palominolabs.jersey.cors.Ternary.*;
 
 /**
  * Jersey ResourceFilterFactory that applies filters to set appropriate headers regular resource methods (@GET, @POST)
@@ -39,60 +26,28 @@ import static com.palominolabs.jersey.cors.Ternary.TRUE;
  * in {@link CorsConfig} as Jersey params.
  */
 @Immutable
-public final class CorsResourceFilterFactory implements ResourceFilterFactory {
-
-    private static final Logger logger = LoggerFactory.getLogger(CorsResourceFilterFactory.class);
-
-    @VisibleForTesting
-    final int defMaxAge;
-    @VisibleForTesting
-    final String defAllowOrigin;
-    @VisibleForTesting
-    final String defExposeHeaders;
-    @VisibleForTesting
-    final Ternary defAllowCredentials;
-    @VisibleForTesting
-    final String defAllowMethods;
-    @VisibleForTesting
-    final String defAllowHeaders;
-
-    public CorsResourceFilterFactory(@Context ResourceConfig resourceConfig) {
-        Map<String, Object> props = resourceConfig.getProperties();
-        // load properties, if they are set, otherwise use hardcoded defaults.
-        defAllowOrigin = getStringProp(props, ALLOW_ORIGIN, "*");
-        defExposeHeaders = getStringProp(props, EXPOSE_HEADERS, "");
-        defAllowCredentials = getBooleanProp(props, ALLOW_CREDENTIALS, false) ? TRUE : FALSE;
-        defMaxAge = getIntProp(props, MAX_AGE, 24 * 3600);
-        defAllowMethods = getStringProp(props, ALLOW_METHODS, "GET");
-        defAllowHeaders = getStringProp(props, ALLOW_HEADERS, "");
-    }
+public final class CorsResourceFilter implements DynamicFeature {
+    private static final Logger logger = LoggerFactory.getLogger(CorsResourceFilter.class);
 
     @Override
-    public List<ResourceFilter> create(AbstractMethod abstractMethod) {
-        if (!(abstractMethod instanceof AbstractResourceMethod)) {
-            return null;
-        }
-
-        Method method = abstractMethod.getMethod();
+    public void configure(ResourceInfo resourceInfo, FeatureContext context) {
+        Method method = resourceInfo.getResourceMethod();
         Class<?> klass = method.getDeclaringClass();
-        List<ResourceFilter> filters = newArrayList();
 
         // check for impossible combinations
         if (method.isAnnotationPresent(OPTIONS.class) && method.isAnnotationPresent(Cors.class)) {
-            logger.error("Resource method " + abstractMethod +
-                " is annotated with @Cors, which is not applicable for methods annotated with @OPTIONS");
-            return null;
+            logger.error("Resource method " + resourceInfo +
+                    " is annotated with @Cors, which is not applicable for methods annotated with @OPTIONS");
+            return;
         } else if (!method.isAnnotationPresent(OPTIONS.class) && method.isAnnotationPresent(CorsPreflight.class)) {
-            logger.error("Resource method " + abstractMethod +
-                " is annotated with @CorsPreflight, which is only applicable for methods annotated with @OPTIONS");
-            return null;
+            logger.error("Resource method " + resourceInfo +
+                    " is annotated with @CorsPreflight, which is only applicable for methods annotated with @OPTIONS");
+            return;
         }
 
-        addCorsFilter(method, klass, filters);
+        addCorsFilter(method, klass, context);
 
-        addCorsPreflightFilter(method, klass, filters);
-
-        return filters;
+        addCorsPreflightFilter(method, klass, context);
     }
 
     /**
@@ -100,14 +55,14 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      *
      * @param method  method
      * @param klass   method's class
-     * @param filters filter list to add to
+     * @param context resource's context
      */
-    private void addCorsFilter(Method method, Class<?> klass, List<ResourceFilter> filters) {
+    private void addCorsFilter(Method method, Class<?> klass, FeatureContext context) {
         if (!klass.isAnnotationPresent(Cors.class) && !method.isAnnotationPresent(Cors.class)) {
             return;
         }
 
-        CorsResourceConfig config = getDefaultResourceConfig();
+        CorsResourceConfig config = getDefaultResourceConfig(context);
 
         if (klass.isAnnotationPresent(Cors.class)) {
             if (method.isAnnotationPresent(OPTIONS.class)) {
@@ -121,7 +76,7 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
             applyCorsAnnotation(config, method.getAnnotation(Cors.class));
         }
 
-        filters.add(getResourceResponseFilter(config));
+        context.register(getResourceResponseFilter(config));
     }
 
     /**
@@ -129,14 +84,14 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      *
      * @param method  method
      * @param klass   method's class
-     * @param filters filter list to add to
+     * @param context resource's context
      */
-    private void addCorsPreflightFilter(Method method, Class<?> klass, List<ResourceFilter> filters) {
+    private void addCorsPreflightFilter(Method method, Class<?> klass, FeatureContext context) {
         if (!klass.isAnnotationPresent(CorsPreflight.class) && !method.isAnnotationPresent(CorsPreflight.class)) {
             return;
         }
 
-        CorsPreflightConfig config = getDefaultPreflightConfig();
+        CorsPreflightConfig config = getDefaultPreflightConfig(context);
 
         if (klass.isAnnotationPresent(CorsPreflight.class)) {
             if (!method.isAnnotationPresent(OPTIONS.class)) {
@@ -150,16 +105,16 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
             applyCorsPreflightAnnotation(config, method.getAnnotation(CorsPreflight.class));
         }
 
-        filters.add(getPreflightResponseFilter(config));
+        context.register(getPreflightResponseFilter(config));
     }
 
-    private ResourceFilter getResourceResponseFilter(CorsResourceConfig config) {
-        return new CorsResourceResponseResourceFilter(config.allowOrigin, config.exposeHeaders,
+    private CorsResponseContainerResponseFilter getResourceResponseFilter(CorsResourceConfig config) {
+        return new CorsResponseContainerResponseFilter(config.allowOrigin, config.exposeHeaders,
             getBooleanFromTernary(config.allowCredentials));
     }
 
-    private ResourceFilter getPreflightResponseFilter(CorsPreflightConfig config) {
-        return new CorsPreflightResponseResourceFilter(config.maxAge, config.allowMethods, config.allowHeaders,
+    private CorsPreflightContainerResponseFilter getPreflightResponseFilter(CorsPreflightConfig config) {
+        return new CorsPreflightContainerResponseFilter(config.maxAge, config.allowMethods, config.allowHeaders,
             getBooleanFromTernary(config.allowCredentials), config.allowOrigin);
     }
 
@@ -215,11 +170,14 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      * @return a CorsResourceConfig filled in based on the current defaults.
      */
     @Nonnull
-    private CorsResourceConfig getDefaultResourceConfig() {
+    private CorsResourceConfig getDefaultResourceConfig(FeatureContext context) {
         CorsResourceConfig c = new CorsResourceConfig();
-        c.allowOrigin = defAllowOrigin;
-        c.exposeHeaders = defExposeHeaders;
-        c.allowCredentials = defAllowCredentials;
+        Map<String, Object> properties = context.getConfiguration().getProperties();
+
+        c.allowOrigin = getStringProp(properties, ALLOW_ORIGIN, "*");
+        c.exposeHeaders = getStringProp(properties, EXPOSE_HEADERS, "");
+        c.allowCredentials = getBooleanProp(properties, ALLOW_CREDENTIALS, false) ? TRUE : FALSE;
+
         return c;
     }
 
@@ -227,13 +185,16 @@ public final class CorsResourceFilterFactory implements ResourceFilterFactory {
      * @return a CorsPreflightConfig filled in based on the current defaults.
      */
     @Nonnull
-    private CorsPreflightConfig getDefaultPreflightConfig() {
+    private CorsPreflightConfig getDefaultPreflightConfig(FeatureContext context) {
         CorsPreflightConfig c = new CorsPreflightConfig();
-        c.maxAge = defMaxAge;
-        c.allowMethods = defAllowMethods;
-        c.allowHeaders = defAllowHeaders;
-        c.allowCredentials = defAllowCredentials;
-        c.allowOrigin = defAllowOrigin;
+        Map<String, Object> properties = context.getConfiguration().getProperties();
+
+        c.maxAge = getIntProp(properties, MAX_AGE, 24 * 3600);
+        c.allowMethods = getStringProp(properties, ALLOW_METHODS, "GET");
+        c.allowHeaders = getStringProp(properties, ALLOW_HEADERS, "");
+        c.allowCredentials = getBooleanProp(properties, ALLOW_CREDENTIALS, false) ? TRUE : FALSE;
+        c.allowOrigin = getStringProp(properties, ALLOW_ORIGIN, "*");
+
         return c;
     }
 
