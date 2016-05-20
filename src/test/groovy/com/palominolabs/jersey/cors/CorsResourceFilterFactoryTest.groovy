@@ -3,30 +3,24 @@ package com.palominolabs.jersey.cors
 import com.google.common.collect.Maps
 import com.ning.http.client.AsyncHttpClient
 import com.ning.http.client.Response
-import com.sun.jersey.api.container.filter.LoggingFilter
-import com.sun.jersey.api.core.DefaultResourceConfig
-import com.sun.jersey.api.core.PackagesResourceConfig
-import com.sun.jersey.api.core.ResourceConfig
-import com.sun.jersey.spi.container.servlet.ServletContainer
-import java.util.logging.LogManager
-import javax.ws.rs.GET
-import javax.ws.rs.OPTIONS
-import javax.ws.rs.Path
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import org.glassfish.jersey.filter.LoggingFilter
+import org.glassfish.jersey.server.ResourceConfig
+import org.glassfish.jersey.servlet.ServletContainer
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.slf4j.bridge.SLF4JBridgeHandler
 
-import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_CREDENTIALS
-import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_HEADERS
-import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_METHODS
-import static com.palominolabs.jersey.cors.CorsHeaders.ALLOW_ORIGIN
-import static com.palominolabs.jersey.cors.CorsHeaders.EXPOSE_HEADERS
-import static com.palominolabs.jersey.cors.CorsHeaders.MAX_AGE
+import javax.ws.rs.GET
+import javax.ws.rs.OPTIONS
+import javax.ws.rs.Path
+import java.util.logging.LogManager
+
+import static com.palominolabs.jersey.cors.CorsHeaders.*
 import static com.palominolabs.jersey.cors.Ternary.FALSE
 import static com.palominolabs.jersey.cors.Ternary.TRUE
 
@@ -47,7 +41,7 @@ class CorsResourceFilterFactoryTest {
 
     ServletHolder servletHolder = new ServletHolder(new ServletContainer())
     servletHolder.initParameters.put(ResourceConfig.PROPERTY_RESOURCE_FILTER_FACTORIES,
-        CorsResourceFilterFactory.canonicalName)
+        CorsResourceFilter.canonicalName)
     servletHolder.initParameters.put(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS, LoggingFilter.canonicalName)
     servletHolder.initParameters.put(ResourceConfig.PROPERTY_CONTAINER_RESPONSE_FILTERS, LoggingFilter.canonicalName)
     servletHolder.initParameters.put(PackagesResourceConfig.PROPERTY_PACKAGES, getClass().package.name)
@@ -66,7 +60,7 @@ class CorsResourceFilterFactoryTest {
 
   @Test
   public void testStandardDefaults() {
-    CorsResourceFilterFactory factory = new CorsResourceFilterFactory(new DefaultResourceConfig())
+    CorsResourceFilter factory = new CorsResourceFilter(new ResourceConfig())
 
     assert '*' == factory.defAllowOrigin
     assert '' == factory.defExposeHeaders
@@ -224,7 +218,8 @@ class CorsResourceFilterFactoryTest {
     assert !r.headers.containsKey(EXPOSE_HEADERS)
     assert !r.headers.containsKey(MAX_AGE)
     assert !r.headers.containsKey(ALLOW_METHODS)
-    assert !r.headers.containsKey(ALLOW_HEADERS)  }
+    assert !r.headers.containsKey(ALLOW_HEADERS)
+  }
 
   @Test
   public void testDontSendHeadersOnOptionsIfNoOriginHeader() throws Exception {
@@ -236,7 +231,8 @@ class CorsResourceFilterFactoryTest {
     assert !r.headers.containsKey(EXPOSE_HEADERS)
     assert !r.headers.containsKey(MAX_AGE)
     assert !r.headers.containsKey(ALLOW_METHODS)
-    assert !r.headers.containsKey(ALLOW_HEADERS)  }
+    assert !r.headers.containsKey(ALLOW_HEADERS)
+  }
 
   private Response doGet(String url) {
     AsyncHttpClient.BoundRequestBuilder req = http.prepareGet(url)
@@ -295,10 +291,10 @@ class CorsResourceFilterFactoryTest {
   }
 
   private static void assertOverriddenDefaults(HashMap<String, Object> props) {
-    DefaultResourceConfig config = new DefaultResourceConfig()
+    ResourceConfig config = new ResourceConfig()
     config.setPropertiesAndFeatures(props)
 
-    CorsResourceFilterFactory factory = new CorsResourceFilterFactory(config)
+    CorsResourceFilter factory = new CorsResourceFilter(config)
 
     assert 'http://foo.com' == factory.defAllowOrigin
     assert 'x-foo' == factory.defExposeHeaders
